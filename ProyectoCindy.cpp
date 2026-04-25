@@ -1,10 +1,22 @@
-// Modulo 1: Gestion de usuarios
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <stdexcept>
 using namespace std;
+
+// Clases dedicadas al manejo de excepciones
+class PacientenoencontradoException: public runtime_error{
+    public:
+    PacientenoencontradoException(): runtime_error("Error: El paciente no esta en el sistema."){}
+};
+
+class AccesodenegadoException: public runtime_error{
+    public:
+    AccesodenegadoException(): runtime_error("Error: Acceso denegado, falta de credenciales."){}
+};
 
 // Clase para los registros medicos
 template <typename T>
@@ -90,15 +102,32 @@ class DirectorMedico: public Medico, public Administrativo{
         cout << "Director medico: " << nombre << "\nId: " << idempleado << "\nEspecialidad: " << especialidad << "\nDepto: " << departamento << endl;
     }
 };
-// Clase paciente para modulo 1
 class Paciente: public Persona{
     private:
     string tiposangre;
     vector<RegistroMedico<string>> historialmedico;
+    vector<string> alergias;
     public:
     Paciente(string n, string c, int e, string s): Persona(n, c, e), tiposangre(s){}
+    void agregaralergia(string alergia){
+        alergias.push_back(alergia);
+    }
     void agregarregistro(string fecha, string desc, string valor){
         historialmedico.push_back(RegistroMedico<string>(fecha, desc, valor));
+    }
+    void mostrarhistorial() const{
+        cout << "Historial clinico de " << nombre << endl;
+        cout << "Tipo de sangre: " << tiposangre << endl;
+        cout << "Alergias conocidas: ";
+        if(alergias.empty()) cout << "Ninguna." << endl;
+        else{
+            for(const auto& a: alergias) cout << a << ", ";
+            cout << endl;
+        }
+        cout << "Registros previos:" << endl;
+        if(historialmedico.empty()) cout << "Sin registros previos." << endl;
+        for(const auto& r: historialmedico) r.mostrarRegistro();
+        cout << endl;
     }
     void mostrardetalles() const override{
         cout << "Paciente: " << nombre << "\nCedula: " << cedula << "\nTipo de sangre: " << tiposangre << endl;
@@ -142,6 +171,12 @@ class SistemaHospital{
     vector<shared_ptr<Empleado>> empleados;
     vector<shared_ptr<Paciente>> pacientes;
     vector<shared_ptr<Citamedica>> citas;
+    shared_ptr<Paciente> getPacienteEstricto(string cedula){
+        for(auto& p: pacientes){
+            if(p->getcedula() == cedula) return p;
+        }
+        throw PacientenoencontradoException();
+    }
     public:
     // Integracion del modulo 1
     void registrarEmpleado(shared_ptr<Empleado> nuevo) {
@@ -211,7 +246,30 @@ class SistemaHospital{
             cout << "No hay disponibilidad para " << especialidad << " el " << fecha << " a las " << hora << endl;
         }
     }
-
+    // Integracion modulo 3 al sistema
+    void consultarHistorial(string cedula, shared_ptr<Empleado> solicitante){
+        try{
+            if (!dynamic_pointer_cast<Medico>(solicitante)){
+                throw AccesodenegadoException();
+            }
+            shared_ptr<Paciente> paciente = getPacienteEstricto(cedula);
+            paciente->mostrarhistorial();
+        } catch(const exception& e){
+            cout << e.what() << endl;
+        }
+    }
+    void registrardiagnostico(string cedula, string fecha, string diagnosito, string tratamiento, shared_ptr<Empleado> solicitante){
+        try{
+            if(!dynamic_pointer_cast<Medico>(solicitante)){
+                throw AccesodenegadoException();
+            }
+            shared_ptr<Paciente> paciente = getPacienteEstricto(cedula);
+            paciente->agregarregistro(fecha, "Diagnostico: " + diagnosito, "Tratamiento: " + tratamiento);
+            cout << "Diagnostico guardado para el paciente " << paciente->getnombre() << endl;
+        } catch(const exception& e){
+            cout << e.what() << endl;
+        }
+    }
     void revocaracceso(string idempleadobaja, const DirectorMedico& solicitante){
         auto it = remove_if(empleados.begin(), empleados.end(), [&idempleadobaja](const shared_ptr<Empleado>& e){
             return e->getid() == idempleadobaja;
