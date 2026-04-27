@@ -5,6 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <stdexcept>
+#include <limits>
 using namespace std;
 
 // Clases dedicadas al manejo de excepciones
@@ -65,6 +66,8 @@ class Empleado: virtual public Persona{
         cout << "Empleado: " << nombre << "\nId: " << idempleado << endl;
     }
 };
+
+// id agregado en metodo 
 class Administrativo: virtual public Empleado{
     protected:
     string departamento;
@@ -72,9 +75,11 @@ class Administrativo: virtual public Empleado{
     public:
     Administrativo(string n, string c, int e, string i, double s, string d, int ni): Persona(n, c, e), Empleado(n, c, e, i, s), departamento(d), nivelacceso(ni){}
     void mostrardetalles() const override{
-        cout << "Admin: " << nombre << "\nDepto: " << departamento << "\nNivel de acceso: " << nivelacceso << endl;
+        cout << "Admin: " << nombre << "\nId: " << idempleado << "\nDepto: " << departamento << "\nNivel de acceso: " << nivelacceso << endl;
     }
 };
+
+// id agregado en metodo 
 class Medico: virtual public Empleado{
     protected:
     string especialidad;
@@ -82,7 +87,7 @@ class Medico: virtual public Empleado{
     public:
     Medico(string n, string c, int e, string i, double s, string es, int co): Persona(n, c, e), Empleado(n, c, e, i, s), especialidad(es), numeroconsultorio(co){}
     void mostrardetalles() const override {
-        cout << "Medico: " << nombre << "\nEspecialidad: " << especialidad << "\nN consultorio: " << numeroconsultorio << endl;
+        cout << "Medico: " << nombre << "\nId: " << idempleado << "\nEspecialidad: " << especialidad << "\nN consultorio: " << numeroconsultorio << endl;
     }
     string getespecialidad() const{
         return especialidad;
@@ -91,6 +96,7 @@ class Medico: virtual public Empleado{
         return numeroconsultorio;
     }
 };
+
 class DirectorMedico: public Medico, public Administrativo{
     private:
     double presupuesto;
@@ -102,6 +108,7 @@ class DirectorMedico: public Medico, public Administrativo{
         cout << "Director medico: " << nombre << "\nId: " << idempleado << "\nEspecialidad: " << especialidad << "\nDepto: " << departamento << endl;
     }
 };
+
 class Paciente: public Persona{
     private:
     string tiposangre;
@@ -116,7 +123,7 @@ class Paciente: public Persona{
         historialmedico.push_back(RegistroMedico<string>(fecha, desc, valor));
     }
     void mostrarhistorial() const{
-        cout << "Historial clinico de " << nombre << endl;
+        cout << "\n--- Historial clinico de " << nombre << " ---" << endl;
         cout << "Tipo de sangre: " << tiposangre << endl;
         cout << "Alergias conocidas: ";
         if(alergias.empty()) cout << "Ninguna." << endl;
@@ -127,12 +134,14 @@ class Paciente: public Persona{
         cout << "Registros previos:" << endl;
         if(historialmedico.empty()) cout << "Sin registros previos." << endl;
         for(const auto& r: historialmedico) r.mostrarRegistro();
-        cout << endl;
+        cout << "-----------------------------------" << endl;
     }
     void mostrardetalles() const override{
         cout << "Paciente: " << nombre << "\nCedula: " << cedula << "\nTipo de sangre: " << tiposangre << endl;
     }
 };
+
+
 //Clase cita medica para modulo 2
 class Citamedica{
     private:
@@ -171,17 +180,30 @@ class SistemaHospital{
     vector<shared_ptr<Empleado>> empleados;
     vector<shared_ptr<Paciente>> pacientes;
     vector<shared_ptr<Citamedica>> citas;
+    
     shared_ptr<Paciente> getPacienteEstricto(string cedula){
         for(auto& p: pacientes){
             if(p->getcedula() == cedula) return p;
         }
         throw PacientenoencontradoException();
     }
+    
     public:
+    // Función de Login
+    shared_ptr<Empleado> iniciarSesion(string idBuscado) {
+        for (const auto& emp : empleados) {
+            if (emp->getid() == idBuscado) {
+                return emp;
+            }
+        }
+        return nullptr; 
+    }
+
     // Integracion del modulo 1
     void registrarEmpleado(shared_ptr<Empleado> nuevo) {
         empleados.push_back(nuevo);
     }
+    
     shared_ptr<Paciente> buscaroregistrarpaciente(string cedula) {
         for(auto& paciente: pacientes) {
             if(paciente->getcedula() == cedula) {
@@ -189,37 +211,42 @@ class SistemaHospital{
                 return paciente;
             }
         }
-    cout << "Paciente no encontrado, se necesita registrar como nuevo paciente." << endl;
-    string nombre, sangre;
-    int edad=0;
-    cout << "Ingrese el nombre: "; cin >> nombre;
-    cout << "Ingrese la edad: "; cin >> edad;
-    cout << "Ingrese el tipo de sangre: "; cin >> sangre;
-    shared_ptr<Paciente> nuevopaciente = make_shared<Paciente>(nombre, cedula, edad, sangre);
-    pacientes.push_back(nuevopaciente);
-    return nuevopaciente;
+        cout << "Paciente no encontrado, se necesita registrar como nuevo paciente." << endl;
+        string nombre, sangre;
+        int edad=0;
+        
+        cout << "Ingrese el nombre: "; 
+        cin >> ws; getline(cin, nombre); 
+        cout << "Ingrese la edad: "; cin >> edad;
+        cout << "Ingrese el tipo de sangre: "; cin >> sangre;
+        
+        shared_ptr<Paciente> nuevopaciente = make_shared<Paciente>(nombre, cedula, edad, sangre);
+        pacientes.push_back(nuevopaciente);
+        return nuevopaciente;
     }
+    
     // Integracion del modulo 2
     void visualizardisponibilidad(string especialidadbuscada, string fecha){
-        cout << "Disponibilidad: " << especialidadbuscada << "\nFecha: " << fecha << endl;
+        cout << "\nDisponibilidad: " << especialidadbuscada << "\nFecha: " << fecha << endl;
         bool encontrarespecialidad = false;
         for(const auto& e: empleados){
             shared_ptr<Medico> med = dynamic_pointer_cast<Medico>(e);
             if(med && med->getespecialidad() == especialidadbuscada){
                 encontrarespecialidad = true;
-                cout << "Dr " << med->getnombre() << "\nConsultorio: " << med->getconsultorio() << endl;
+                cout << "Dr. " << med->getnombre() << "\nConsultorio: " << med->getconsultorio() << endl;
                 bool tienecitas = false;
                 for(const auto& c: citas){
                     if(c->getmedico() == med && c->getfecha() == fecha && c->getestado() != "Cancelada"){
-                        cout << c->gethora() << endl;
+                        cout << " - Ocupado: " << c->gethora() << endl;
                         tienecitas = true;
                     }
                 }
-                if (!tienecitas) cout << "Ninguno(libre)" << endl;   
+                if (!tienecitas) cout << " - Ninguno (libre)" << endl;   
             }
         }
         if (!encontrarespecialidad) cout << "No hay medicos registrados con esta especialidad" << endl;
     }
+    
     void solicitarcita(shared_ptr<Paciente> paciente, string especialidad, string fecha, string hora) {
         shared_ptr<Medico> medicodisponible = nullptr;
         for (const auto& e: empleados) {
@@ -241,11 +268,12 @@ class SistemaHospital{
         if (medicodisponible){
             shared_ptr<Citamedica> nuevacita = make_shared<Citamedica>(fecha, hora, paciente, medicodisponible);
             citas.push_back(nuevacita);
-            cout << "Cita confirmada para " << paciente->getnombre() << " con dr " << medicodisponible->getnombre() << " para el " << fecha << " a las " << hora << endl;
+            cout << "Cita confirmada para " << paciente->getnombre() << " con Dr. " << medicodisponible->getnombre() << " para el " << fecha << " a las " << hora << endl;
         } else{
             cout << "No hay disponibilidad para " << especialidad << " el " << fecha << " a las " << hora << endl;
         }
     }
+    
     // Integracion modulo 3 al sistema
     void consultarHistorial(string cedula, shared_ptr<Empleado> solicitante){
         try{
@@ -255,105 +283,180 @@ class SistemaHospital{
             shared_ptr<Paciente> paciente = getPacienteEstricto(cedula);
             paciente->mostrarhistorial();
         } catch(const exception& e){
-            cout << e.what() << endl;
+            cout << e.what() << " (Se requiere rol de Medico)" << endl;
         }
     }
-    void registrardiagnostico(string cedula, string fecha, string diagnosito, string tratamiento, shared_ptr<Empleado> solicitante){
+    
+    void registrardiagnostico(string cedula, string fecha, string diagnostico, string tratamiento, shared_ptr<Empleado> solicitante){
         try{
             if(!dynamic_pointer_cast<Medico>(solicitante)){
                 throw AccesodenegadoException();
             }
             shared_ptr<Paciente> paciente = getPacienteEstricto(cedula);
-            paciente->agregarregistro(fecha, "Diagnostico: " + diagnosito, "Tratamiento: " + tratamiento);
+            paciente->agregarregistro(fecha, "Diagnostico: " + diagnostico, "Tratamiento: " + tratamiento);
             cout << "Diagnostico guardado para el paciente " << paciente->getnombre() << endl;
         } catch(const exception& e){
-            cout << e.what() << endl;
+            cout << e.what() << " (Se requiere rol de Medico)" << endl;
         }
     }
-    void revocaracceso(string idempleadobaja, const DirectorMedico& solicitante){
-        auto it = remove_if(empleados.begin(), empleados.end(), [&idempleadobaja](const shared_ptr<Empleado>& e){
-            return e->getid() == idempleadobaja;
-        });
-        if (it !=empleados.end()){
-            empleados.erase(it, empleados.end());
-            cout << "Acceso revocado y eliminado del sistema empleado con id " << idempleadobaja << endl;
-        } else{
-            cout << "Error: Empleado no encontrado" << endl;
+    
+    void revocaracceso(string idempleadobaja, shared_ptr<Empleado> solicitante){
+        try {
+            if (!dynamic_pointer_cast<DirectorMedico>(solicitante)){
+                throw AccesodenegadoException();
+            }
+            auto it = remove_if(empleados.begin(), empleados.end(), [&idempleadobaja](const shared_ptr<Empleado>& e){
+                return e->getid() == idempleadobaja;
+            });
+            if (it != empleados.end()){
+                empleados.erase(it, empleados.end());
+                cout << "Exito: Acceso revocado y empleado con id " << idempleadobaja << " eliminado." << endl;
+            } else{
+                cout << "Error: Empleado no encontrado." << endl;
+            }
+        } catch(const exception& e){
+            cout << e.what() << " (Solo el Director Medico puede revocar accesos)." << endl;
         }
     }
+    
     void mostrarempleados() const{
-        cout << "Lista de empleados:" << endl;
-        for (const auto& i: empleados) i->mostrardetalles();
-        cout << endl;
+        cout << "\n--- Lista de Empleados ---" << endl;
+        for (const auto& i: empleados) {
+            i->mostrardetalles();
+            cout << "-" << endl;
+        }
     }
 };
-// Prueba del sistema en el main
-int main () {
-    SistemaHospital sis;
+
+
+
+
+int main() {
+    SistemaHospital hospital;
+
+    // Precargar datos para no empezar con el sistema vacio
+    shared_ptr<DirectorMedico> director = make_shared<DirectorMedico>("Dr. House", "1111", 50, "EMP01", 5000.0, "Diagnostico", 101, "General", 5, 100000.0);
+    shared_ptr<Medico> medico1 = make_shared<Medico>("Dra. Cameron", "2222", 35, "EMP02", 3000.0, "Inmunologia", 102);
+    shared_ptr<Administrativo> admin1 = make_shared<Administrativo>("Juan Perez", "3333", 28, "EMP03", 1500.0, "Recepcion", 1);
     
-    //Prueba modulo 1
-    cout << "Pruebas del modulo 1:" << endl;
-    shared_ptr<Administrativo> recepcionista = make_shared<Administrativo>("Ana Gunn", "1712345678", 28, "EMP-001", 600.0, "Recepcion", 1);
-    shared_ptr<Medico> drwhite = make_shared<Medico>("Walter White", "1722334455", 50, "MED-001", 3000.0, "Diagnostico", 201);
-    shared_ptr<Medico> drpinkman = make_shared<Medico>("Jesse Pinkman", "1733445566", 40, "MED-002", 2800.0, "Cirugia", 305);
+    hospital.registrarEmpleado(director);
+    hospital.registrarEmpleado(medico1);
+    hospital.registrarEmpleado(admin1);
 
-    sis.registrarEmpleado(recepcionista);
-    sis.registrarEmpleado(drwhite);
-    sis.registrarEmpleado(drpinkman);
+    // --- SISTEMA DE LOGIN ---
+    shared_ptr<Empleado> usuarioActual = nullptr;
+    string idLogin;
 
-    cout << "Lista de empleados:" << endl;
-    sis.mostrarempleados();
+    cout << "========================================" << endl;
+    cout << "    BIENVENIDO AL SISTEMA DEL HOSPITAL  " << endl;
+    cout << "========================================" << endl;
+    cout << " IDs de prueba:\n EMP01 (Director)\n EMP02 (Medico)\n EMP03 (Administrativo)" << endl;
+    cout << "========================================\n" << endl;
 
-    cout << "Ejemplo de revocar acceso" << endl;
+    while (usuarioActual == nullptr) {
+        cout << "Ingrese su ID de empleado para iniciar sesion: ";
+        cin >> idLogin;
+        usuarioActual = hospital.iniciarSesion(idLogin);
 
-    DirectorMedico director("Gustavo Fring", "1709998887", 55, "DIR-001", 5000.0, "Gerencia Hospitalaria", 500, "Administracion", 5, 100000.0);
-
-    cout << "El director va a dar de baja al dr Pinkman por usar los medicamentos para el dolor para el mismo" << endl;
-    sis.revocaracceso("MED-002", director);
-
-    cout << "\nLista de empleados actualizada:" << endl;
-    sis.mostrarempleados();
-
-    cout << "Recepcionista gestionando pacientes:" << endl;
-
-    cout << "Primer caso: buscar un paciente nuevo(1799887766)" << endl;
-
-    shared_ptr<Paciente> pnuevo = sis.buscaroregistrarpaciente("1799887766");
-
-    if (pnuevo) {
-        pnuevo->agregarregistro("2026-04-20", "Motivo de consulta", "Revision general completada");
-        pnuevo->mostrardetalles();
+        if (usuarioActual == nullptr) {
+            cout << "Error: ID no reconocido. Intente de nuevo.\n" << endl;
+        }
     }
 
-    cout << "Segundo caso: si el paciente ya esta registrado(1799887766)" << endl;
+    cout << "\nInicio de sesion exitoso. Bienvenido, " << usuarioActual->getnombre() << "!" << endl;
 
-    shared_ptr<Paciente> pexistente = sis.buscaroregistrarpaciente("1799887766");
+    // --- MENU INTERACTIVO ---
+    int opcion;
+    string cedula, especialidad, fecha, hora, diagnostico, tratamiento;
 
-    if(pexistente) {
-        pexistente->mostrardetalles();
-        cout << "Al ya existir el paciente, el sistema omitio el proceso de registro" << endl;
-    }
-    cout << endl;
+    do {
+        cout << "\n========================================" << endl;
+        cout << "        MENU PRINCIPAL v1.0             " << endl;
+        cout << " Usuario actual: " << usuarioActual->getnombre() << endl;
+        cout << "========================================" << endl;
+        cout << "1. Buscar o Registrar Paciente" << endl;
+        cout << "2. Mostrar Empleados Registrados" << endl;
+        cout << "3. Ver Disponibilidad Medica" << endl;
+        cout << "4. Solicitar Cita Medica" << endl;
+        cout << "5. Registrar Diagnostico (Requiere Medico)" << endl;
+        cout << "6. Consultar Historial (Requiere Medico)" << endl;
+        cout << "7. Revocar Acceso Empleado (Solo Director)" << endl;
+        cout << "0. Salir" << endl;
+        cout << "========================================" << endl;
+        cout << "Seleccione una opcion: ";
+        
+        if (!(cin >> opcion)) { 
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            opcion = -1;
+        }
 
+        switch (opcion) {
+            case 1:
+                cout << "Ingrese la cedula del paciente: ";
+                cin >> cedula;
+                hospital.buscaroregistrarpaciente(cedula);
+                break;
+                
+            case 2:
+                hospital.mostrarempleados();
+                break;
 
-    //Prueba modulo 2
-    cout << "pruebas modulo 2:" << endl;
-    shared_ptr<Medico> drcardio1 = make_shared<Medico>("Pepito Peres", "1701", 45, "CAR-01", 3000, "Cardiologia", 101);
-    shared_ptr<Medico> drcardio2 = make_shared<Medico>("Pepita Lopez", "1702", 38, "CAR-02", 3000, "Cardiologia", 102);
-    shared_ptr<Paciente> p1 = make_shared<Paciente>("Carlos Gomes", "1755", 30, "O+");
-    shared_ptr<Paciente> p2 = make_shared<Paciente>("Maria Juana", "1766", 25, "A-");
+            case 3:
+                cout << "Ingrese especialidad buscada (ej. Inmunologia): ";
+                cin >> especialidad;
+                cout << "Ingrese fecha (DD/MM/AAAA): ";
+                cin >> fecha;
+                hospital.visualizardisponibilidad(especialidad, fecha);
+                break;
 
-    sis.registrarEmpleado(drcardio1);
-    sis.registrarEmpleado(drcardio2);
+            case 4: {
+                cout << "Ingrese cedula del paciente: ";
+                cin >> cedula;
+                try {
+                    shared_ptr<Paciente> p = hospital.buscaroregistrarpaciente(cedula);
+                    cout << "Ingrese especialidad: "; cin >> especialidad;
+                    cout << "Ingrese fecha (DD/MM/AAAA): "; cin >> fecha;
+                    cout << "Ingrese hora (HH:MM): "; cin >> hora;
+                    hospital.solicitarcita(p, especialidad, fecha, hora);
+                } catch (...) {
+                    cout << "Error al procesar la cita." << endl;
+                }
+                break;
+            }
 
-    sis.visualizardisponibilidad("Cardiologia", "2026-05-10");
+            case 5:
+                cout << "Ingrese cedula del paciente: "; cin >> cedula;
+                cout << "Ingrese fecha (DD/MM/AAAA): "; cin >> fecha;
+                cout << "Ingrese diagnostico: ";
+                cin >> ws; getline(cin, diagnostico);
+                cout << "Ingrese tratamiento: ";
+                getline(cin, tratamiento);
+                hospital.registrardiagnostico(cedula, fecha, diagnostico, tratamiento, usuarioActual);
+                break;
 
-    cout << "\nPaciente Carlos solicita cita de Cardiologia a las 10:00" << endl;
-    sis.solicitarcita(p1, "Cardiologia", "2026-05-10", "10:00");
+            case 6:
+                cout << "Ingrese cedula del paciente: "; cin >> cedula;
+                hospital.consultarHistorial(cedula, usuarioActual);
+                break;
 
-    cout << "\n[Paciente Maria solicita cita de Cardiologia a la misma hora 10:00]" << endl;
-    sis.solicitarcita(p2, "Cardiologia", "2026-05-10", "10:00");
-    sis.visualizardisponibilidad("Cardiologia", "2026-05-10");
-    cout << endl;
+            case 7: {
+                string idDespido;
+                cout << "Ingrese el ID del empleado a dar de baja: ";
+                cin >> idDespido;
+                hospital.revocaracceso(idDespido, usuarioActual);
+                break;
+            }
+
+            case 0:
+                cout << "Cerrando sesion... ¡Hasta luego, " << usuarioActual->getnombre() << "!" << endl;
+                break;
+
+            default:
+                cout << "Opcion no valida. Intente de nuevo." << endl;
+        }
+    } while (opcion != 0);
+
     return 0;
 }
+
