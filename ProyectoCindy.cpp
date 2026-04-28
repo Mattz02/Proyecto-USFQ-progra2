@@ -77,6 +77,9 @@ class Administrativo: virtual public Empleado{
     void mostrardetalles() const override{
         cout << "Admin: " << nombre << "\nId: " << idempleado << "\nDepto: " << departamento << "\nNivel de acceso: " << nivelacceso << endl;
     }
+    void emitirfactura() const{
+        cout << "El personal administrativo " << nombre << " ha emitido la factura." << endl;
+    }
 };
 
 // id agregado en metodo 
@@ -141,6 +144,23 @@ class Paciente: public Persona{
     }
 };
 
+//Clase Factura
+class Factura{
+    private:
+    string idfactura;
+    double montototal;
+    shared_ptr<Paciente> pacientefacturado;
+    public:
+    Factura(string i, double m, shared_ptr<Paciente> p): idfactura(i), montototal(m), pacientefacturado(p){}
+    void mostrarfactura() const{
+        cout << "Factura:" << endl;
+        cout << "Id factura: " << idfactura << endl;
+        if(pacientefacturado) {
+            cout << "Paciente: " << pacientefacturado->getnombre() << "\nCi: " << pacientefacturado->getcedula() << endl;
+        }
+        cout << "Monto total: " << montototal << endl;
+    }
+};
 
 //Clase cita medica para modulo 2
 class Citamedica{
@@ -180,6 +200,7 @@ class SistemaHospital{
     vector<shared_ptr<Empleado>> empleados;
     vector<shared_ptr<Paciente>> pacientes;
     vector<shared_ptr<Citamedica>> citas;
+    vector<shared_ptr<Factura>> facturas;
     
     shared_ptr<Paciente> getPacienteEstricto(string cedula){
         for(auto& p: pacientes){
@@ -326,11 +347,22 @@ class SistemaHospital{
             cout << "-" << endl;
         }
     }
+    void generarfactura(string cedula, string id, double monto, shared_ptr<Empleado> solicitante) {
+        try{
+            shared_ptr<Administrativo> admin = dynamic_pointer_cast<Administrativo>(solicitante);
+            if(!admin){
+                throw AccesodenegadoException();
+            }
+            shared_ptr<Paciente> paciente = getPacienteEstricto(cedula);
+            shared_ptr<Factura> nuevafactura = make_shared<Factura>(id, monto, paciente);
+            facturas.push_back(nuevafactura);
+            admin->emitirfactura();
+            nuevafactura->mostrarfactura();
+        } catch(const exception& e){
+            cout << e.what() << " (Se requiere el rol de administrador)" << endl;
+        }
+    }
 };
-
-
-
-
 int main() {
     SistemaHospital hospital;
 
@@ -381,6 +413,7 @@ int main() {
         cout << "5. Registrar Diagnostico (Requiere Medico)" << endl;
         cout << "6. Consultar Historial (Requiere Medico)" << endl;
         cout << "7. Revocar Acceso Empleado (Solo Director)" << endl;
+        cout << "8. Emitir factura (Administrativo requerido)" << endl;
         cout << "0. Salir" << endl;
         cout << "========================================" << endl;
         cout << "Seleccione una opcion: ";
@@ -445,6 +478,23 @@ int main() {
                 cout << "Ingrese el ID del empleado a dar de baja: ";
                 cin >> idDespido;
                 hospital.revocaracceso(idDespido, usuarioActual);
+                break;
+            }
+            case 8:{
+                string idfactura;
+                double montototal;
+                cout << "Ingrese la cedula del paciente a facturar:";
+                cin >> cedula;
+                cout << "Ingrese el id para la nueva factura:";
+                cin >> idfactura;
+                cout << "Ingrese el monto total:";
+                if(!(cin >> montototal)){
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << "Error: monto invalido" << endl;
+                    break;
+                }
+                hospital.generarfactura(cedula, idfactura, montototal, usuarioActual);
                 break;
             }
 
