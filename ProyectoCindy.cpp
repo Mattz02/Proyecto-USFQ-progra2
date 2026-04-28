@@ -362,6 +362,65 @@ class SistemaHospital{
             cout << e.what() << " (Se requiere el rol de administrador)" << endl;
         }
     }
+    // Metodo para calcular salario de empleados
+    void calcularSalarioEmpleado(string idBuscado) const {
+        bool encontrado = false;
+        for (const auto& emp : empleados) {
+            if (emp->getid() == idBuscado) {
+                cout << "-> El salario mensual calculado para " << emp->getnombre() 
+                     << " (ID: " << emp->getid() << ") es: $" << emp->calcularpagomensual() << endl;
+                encontrado = true;
+                break;
+            }
+        }
+        if (!encontrado) {
+            cout << "Error: No se encontro ningun empleado con el ID '" << idBuscado << "'." << endl;
+        }
+    }
+    // Metodo para case 10
+    void registrarEmpleadoPorDirector(shared_ptr<Empleado> solicitante) {
+        try {
+            if (!dynamic_pointer_cast<DirectorMedico>(solicitante)) {
+                throw AccesodenegadoException();
+            }
+
+            int tipo;
+            string n, c, i, d, es;
+            int e, ni, co;
+            double s, pre;
+
+            cout << "\n--- Formulario de Registro de Empleado ---" << endl;
+            cout << "1. Medico\n2. Administrativo\n3. Director Medico\nSeleccione: ";
+            cin >> tipo;
+
+            cout << "Nombre: "; cin >> ws; getline(cin, n);
+            cout << "Cedula: "; cin >> c;
+            cout << "Edad: "; cin >> e;
+            cout << "ID Empleado: "; cin >> i;
+            cout << "Salario Base: "; cin >> s;
+
+            if (tipo == 1) {
+                cout << "Especialidad: "; cin >> es;
+                cout << "Consultorio: "; cin >> co;
+                registrarEmpleado(make_shared<Medico>(n, c, e, i, s, es, co));
+            } else if (tipo == 2) {
+                cout << "Departamento: "; cin >> d;
+                cout << "Nivel de Acceso: "; cin >> ni;
+                registrarEmpleado(make_shared<Administrativo>(n, c, e, i, s, d, ni));
+            } else if (tipo == 3) {
+                cout << "Especialidad: "; cin >> es;
+                cout << "Consultorio: "; cin >> co;
+                cout << "Departamento: "; cin >> d;
+                cout << "Nivel de Acceso: "; cin >> ni;
+                cout << "Presupuesto: "; cin >> pre;
+                registrarEmpleado(make_shared<DirectorMedico>(n, c, e, i, s, es, co, d, ni, pre));
+            }
+            cout << "¡Empleado " << n << " registrado con exito!" << endl;
+
+        } catch (const exception& e) {
+            cout << e.what() << " (Solo el Director Medico tiene permisos de contratacion)." << endl;
+        }
+    }
 };
 int main() {
     SistemaHospital hospital;
@@ -414,6 +473,8 @@ int main() {
         cout << "6. Consultar Historial (Requiere Medico)" << endl;
         cout << "7. Revocar Acceso Empleado (Solo Director)" << endl;
         cout << "8. Emitir factura (Administrativo requerido)" << endl;
+        cout << "9. Calcular salario de empleado" << endl;
+        cout << "10. Agregar empleado al sistema (solo director)" << endl;
         cout << "0. Salir" << endl;
         cout << "========================================" << endl;
         cout << "Seleccione una opcion: ";
@@ -497,7 +558,16 @@ int main() {
                 hospital.generarfactura(cedula, idfactura, montototal, usuarioActual);
                 break;
             }
-
+            case 9:{
+            string idEmpleadoSalario;
+            cout << "Ingrese el ID del empleado para calcular su salario: ";
+            cin >> idEmpleadoSalario;
+            hospital.calcularSalarioEmpleado(idEmpleadoSalario);
+            break;
+            }
+            case 10:
+            hospital.registrarEmpleadoPorDirector(usuarioActual);
+            break;
             case 0:
                 cout << "Cerrando sesion... ¡Hasta luego, " << usuarioActual->getnombre() << "!" << endl;
                 break;
